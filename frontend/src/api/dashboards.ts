@@ -1,86 +1,31 @@
-import { apiClient } from './client'
-import type {
-  DashboardListItem,
-  DashboardConfig,
-  QueryFilter,
-  QueryResult,
-  AnomalyResult,
-  ForecastResult,
-  DatasetSchema,
-} from '@/types/dashboard'
+/**
+ * dashboards.ts — cliente HTTP para persistencia de dashboards en Redis.
+ * El backend guarda DashboardConfig[] con TTL largo (7 días).
+ */
+import axios from 'axios'
+import type { DashboardConfig } from '@/store/dashboardStore'
 
-export const dashboardsApi = {
-  list: async (): Promise<DashboardListItem[]> => {
-    const { data } = await apiClient.get('/dashboards')
-    return data.data
-  },
+const BASE = (import.meta.env.VITE_API_URL ?? '') + '/api/v1'
 
-  get: async (slug: string): Promise<DashboardConfig> => {
-    const { data } = await apiClient.get(`/dashboards/${slug}`)
-    return data.data
-  },
-
-  query: async (
-    slug: string,
-    filters: QueryFilter[] = [],
-    params: Record<string, unknown> = {}
-  ): Promise<QueryResult> => {
-    const { data } = await apiClient.post(`/dashboards/${slug}/query`, { filters, params })
-    return data
-  },
-
-  anomalies: async (
-    slug: string,
-    values: number[],
-    algorithm = 'auto'
-  ): Promise<AnomalyResult> => {
-    const { data } = await apiClient.post(`/dashboards/${slug}/anomalies`, { values, algorithm })
-    return data.data
-  },
-
-  forecast: async (
-    slug: string,
-    values: number[],
-    season = 12,
-    horizon = 12
-  ): Promise<ForecastResult> => {
-    const { data } = await apiClient.post(`/dashboards/${slug}/forecast`, {
-      values, season, horizon,
-    })
-    return data.data
-  },
+export async function saveDashboard(config: DashboardConfig): Promise<void> {
+  await axios.put(`${BASE}/dashboards/${config.id}`, config)
 }
 
-export const ingestApi = {
-  file: async (file: File): Promise<{ data: { dataset_id: string; schema: DatasetSchema; chart_hint: unknown } }> => {
-    const form = new FormData()
-    form.append('file', file)
-    const { data } = await apiClient.post('/ingest/file', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+export async function loadDashboard(id: string): Promise<DashboardConfig | null> {
+  try {
+    const { data } = await axios.get<DashboardConfig>(`${BASE}/dashboards/${id}`)
     return data
-  },
+  } catch (e: any) {
+    if (e?.response?.status === 404) return null
+    throw e
+  }
+}
 
-  json: async (payload: unknown): Promise<{ data: { dataset_id: string; schema: DatasetSchema } }> => {
-    const { data } = await apiClient.post('/ingest/json', { payload })
-    return data
-  },
+export async function listDashboards(): Promise<string[]> {
+  const { data } = await axios.get<{ ids: string[] }>(`${BASE}/dashboards`)
+  return data.ids
+}
 
-  sql: async (sql: string): Promise<{ data: { dataset_id: string; ast_columns: unknown[] } }> => {
-    const { data } = await apiClient.post('/ingest/sql', { sql })
-    return data
-  },
-
-  getSchema: async (datasetId: string): Promise<DatasetSchema> => {
-    const { data } = await apiClient.get(`/schema/${datasetId}`)
-    return data.data
-  },
-
-  overrideColumn: async (
-    datasetId: string,
-    column: string,
-    type: string
-  ): Promise<void> => {
-    await apiClient.patch(`/schema/${datasetId}/columns/${column}`, { type })
-  },
+export async function deleteDashboardRemote(id: string): Promise<void> {
+  await axios.delete(`${BASE}/dashboards/${id}`)
 }
