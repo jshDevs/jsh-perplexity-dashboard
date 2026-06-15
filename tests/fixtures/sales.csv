@@ -1,0 +1,16 @@
+date,product,category,revenue,units,region
+2026-01-01,Widget A,Electronics,1200.50,10,North
+2026-01-02,Widget B,Electronics,850.00,7,South
+2026-01-03,Gadget X,Accessories,320.75,25,East
+2026-01-04,Widget A,Electronics,1100.00,9,West
+2026-01-05,Gadget Y,Accessories,410.00,32,North
+2026-01-06,Widget C,Electronics,990.25,8,South
+2026-01-07,Gadget X,Accessories,275.50,21,East
+2026-01-08,Widget A,Electronics,1350.00,11,North
+2026-01-09,Widget B,Electronics,760.00,6,West
+2026-01-10,Gadget Z,Accessories,520.00,40,South
+2026-01-11,Widget A,Electronics,1450.75,12,North
+2026-01-12,Gadget X,Accessories,290.00,22,East
+2026-01-13,Widget C,Electronics,1050.50,9,West
+2026-01-14,Gadget Y,Accessories,380.25,29,South
+2026-01-15,Widget A,Electronics,1200.00,10,North
