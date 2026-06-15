@@ -1,0 +1,57 @@
+{
+  "insights": {
+    "trend_up":       "{{metric}} increased {{pct}}% during the selected period.",
+    "trend_down":     "{{metric}} decreased {{pct}}% during the selected period.",
+    "peak":           "The highest value of {{metric}} was {{value}} on {{date}}.",
+    "concentration":  "{{pct}}% of {{metric}} is concentrated in the top {{topN}} {{dimension}}.",
+    "anomaly":        "Outlier detected in {{field}}: {{value}} ({{algorithm}}, threshold {{threshold}}).",
+    "no_data":        "No data found for the selected period.",
+    "comparison":     "{{metric}} this period: {{current}} vs {{previous}} previous period ({{delta}}%)."
+  },
+  "warnings": {
+    "high_null_rate":     "Field '{{field}}' has {{pct}}% null values.",
+    "low_cardinality":    "'{{field}}' has only {{n}} unique values — consider using it as a dimension.",
+    "high_cardinality":   "'{{field}}' has {{n}} unique values — may not be useful as a dimension.",
+    "no_temporal_field":  "No date/time field detected in the dataset.",
+    "mixed_types":        "Field '{{field}}' contains mixed types (text and numbers).",
+    "low_confidence":     "Classification of '{{field}}' as {{role}} has low confidence ({{pct}}%)."
+  },
+  "questions": {
+    "classify_field":     "How should the field '{{field}}' be classified?",
+    "confirm_metric":     "Is '{{field}}' a numeric metric (e.g. sales, quantity)?",
+    "confirm_dimension":  "Is '{{field}}' a category or group (e.g. region, product)?",
+    "confirm_time":       "Does '{{field}}' represent a date or time period?"
+  },
+  "errors": {
+    "file_too_large":     "File exceeds the {{maxMB}} MB limit.",
+    "invalid_mime":       "File type not allowed: {{mime}}.",
+    "formula_injection":  "The file contains potentially dangerous formulas.",
+    "zip_bomb":           "Compressed file exceeds the allowed expansion ratio.",
+    "empty_dataset":      "The dataset contains no data rows.",
+    "sql_forbidden":      "Only SELECT queries are allowed.",
+    "unauthorized":       "Token required or invalid.",
+    "rate_limit":         "Too many requests. Please retry in {{sec}} seconds."
+  },
+  "kpi": {
+    "total":     "Total",
+    "average":   "Average",
+    "max":       "Maximum",
+    "min":       "Minimum",
+    "count":     "Records",
+    "sum":       "Sum"
+  },
+  "ui": {
+    "loading":       "Loading...",
+    "no_results":    "No results",
+    "previous":      "Previous",
+    "next":          "Next",
+    "page":          "Page",
+    "of":            "of",
+    "rows_per_page": "Rows per page",
+    "export_csv":    "Export CSV",
+    "refresh":       "Refresh",
+    "filters":       "Filters",
+    "period":        "Period",
+    "compare":       "Compare"
+  }
+}

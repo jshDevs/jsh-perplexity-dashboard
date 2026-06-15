@@ -1,0 +1,52 @@
+{
+  "nav": {
+    "dashboards": "Dashboards",
+    "ingest":     "Ingestar datos",
+    "settings":   "Configuración",
+    "logout":     "Cerrar sesión"
+  },
+  "ingest": {
+    "title":         "Cargar datos",
+    "drop_hint":     "Arrastra un archivo CSV, Excel o JSON aquí",
+    "or_browse":     "o haz clic para seleccionar",
+    "analyzing":     "Analizando estructura...",
+    "success":       "Dataset cargado correctamente.",
+    "error_generic": "Error al procesar el archivo."
+  },
+  "dashboard": {
+    "loading":      "Cargando dashboard...",
+    "no_data":      "Sin datos para mostrar",
+    "auto_insights":"Hallazgos automáticos",
+    "export":       "Exportar",
+    "share":        "Compartir URL",
+    "fullscreen":   "Pantalla completa"
+  },
+  "table": {
+    "previous":      "Anterior",
+    "next":          "Siguiente",
+    "page":          "Página",
+    "of":            "de",
+    "rows_per_page": "Filas por página",
+    "no_results":    "Sin resultados"
+  },
+  "filters": {
+    "period":   "Período",
+    "compare":  "Comparar",
+    "clear":    "Limpiar filtros",
+    "apply":    "Aplicar"
+  },
+  "auth": {
+    "login":           "Iniciar sesión",
+    "username":        "Usuario",
+    "password":        "Contraseña",
+    "login_button":    "Entrar",
+    "invalid_creds":   "Credenciales inválidas",
+    "logging_in":      "Ingresando..."
+  },
+  "errors": {
+    "network":    "Error de red. Verifica la conexión al servidor.",
+    "unauthorized":"Sesión expirada. Inicia sesión nuevamente.",
+    "not_found":  "Recurso no encontrado.",
+    "generic":    "Ocurrió un error inesperado."
+  }
+}

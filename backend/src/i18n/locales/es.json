@@ -1,0 +1,57 @@
+{
+  "insights": {
+    "trend_up":       "{{metric}} aumentó {{pct}}% en el período seleccionado.",
+    "trend_down":     "{{metric}} disminuyó {{pct}}% en el período seleccionado.",
+    "peak":           "El valor más alto de {{metric}} fue {{value}} el {{date}}.",
+    "concentration":  "El {{pct}}% de {{metric}} se concentra en {{topN}} {{dimension}}.",
+    "anomaly":        "Valor atípico detectado en {{field}}: {{value}} ({{algorithm}}, umbral {{threshold}}).",
+    "no_data":        "No se encontraron datos para el período seleccionado.",
+    "comparison":     "{{metric}} este período: {{current}} vs {{previous}} período anterior ({{delta}}%)."
+  },
+  "warnings": {
+    "high_null_rate":     "El campo '{{field}}' tiene {{pct}}% de valores nulos.",
+    "low_cardinality":    "'{{field}}' tiene solo {{n}} valores únicos — consider usarlo como dimensión.",
+    "high_cardinality":   "'{{field}}' tiene {{n}} valores únicos — puede no ser útil como dimensión.",
+    "no_temporal_field":  "No se detectó campo de fecha/tiempo en el dataset.",
+    "mixed_types":        "El campo '{{field}}' contiene tipos mixtos (texto y números).",
+    "low_confidence":     "Clasificación de '{{field}}' como {{role}} tiene baja confianza ({{pct}}%)."
+  },
+  "questions": {
+    "classify_field":     "¿Cómo clasificar el campo '{{field}}'?",
+    "confirm_metric":     "¿El campo '{{field}}' es una métrica numérica (ej. ventas, cantidad)?",
+    "confirm_dimension":  "¿El campo '{{field}}' es una categoría o grupo (ej. región, producto)?",
+    "confirm_time":       "¿El campo '{{field}}' representa una fecha o período de tiempo?"
+  },
+  "errors": {
+    "file_too_large":     "El archivo excede el límite de {{maxMB}} MB.",
+    "invalid_mime":       "Tipo de archivo no permitido: {{mime}}.",
+    "formula_injection":  "El archivo contiene fórmulas potencialmente peligrosas.",
+    "zip_bomb":           "El archivo comprimido supera el ratio de expansión permitido.",
+    "empty_dataset":      "El dataset no contiene filas de datos.",
+    "sql_forbidden":      "Solo se permiten consultas SELECT.",
+    "unauthorized":       "Token requerido o inválido.",
+    "rate_limit":         "Demasiadas solicitudes. Intenta nuevamente en {{sec}} segundos."
+  },
+  "kpi": {
+    "total":     "Total",
+    "average":   "Promedio",
+    "max":       "Máximo",
+    "min":       "Mínimo",
+    "count":     "Registros",
+    "sum":       "Suma"
+  },
+  "ui": {
+    "loading":       "Cargando...",
+    "no_results":    "Sin resultados",
+    "previous":      "Anterior",
+    "next":          "Siguiente",
+    "page":          "Página",
+    "of":            "de",
+    "rows_per_page": "Filas por página",
+    "export_csv":    "Exportar CSV",
+    "refresh":       "Actualizar",
+    "filters":       "Filtros",
+    "period":        "Período",
+    "compare":       "Comparar"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "nav": {
+    "dashboards": "Dashboards",
+    "ingest":     "Ingest data",
+    "settings":   "Settings",
+    "logout":     "Sign out"
+  },
+  "ingest": {
+    "title":         "Upload data",
+    "drop_hint":     "Drag a CSV, Excel or JSON file here",
+    "or_browse":     "or click to browse",
+    "analyzing":     "Analyzing structure...",
+    "success":       "Dataset loaded successfully.",
+    "error_generic": "Error processing the file."
+  },
+  "dashboard": {
+    "loading":      "Loading dashboard...",
+    "no_data":      "No data to display",
+    "auto_insights":"Automatic insights",
+    "export":       "Export",
+    "share":        "Share URL",
+    "fullscreen":   "Fullscreen"
+  },
+  "table": {
+    "previous":      "Previous",
+    "next":          "Next",
+    "page":          "Page",
+    "of":            "of",
+    "rows_per_page": "Rows per page",
+    "no_results":    "No results"
+  },
+  "filters": {
+    "period":   "Period",
+    "compare":  "Compare",
+    "clear":    "Clear filters",
+    "apply":    "Apply"
+  },
+  "auth": {
+    "login":          "Sign in",
+    "username":       "Username",
+    "password":       "Password",
+    "login_button":   "Sign in",
+    "invalid_creds":  "Invalid credentials",
+    "logging_in":     "Signing in..."
+  },
+  "errors": {
+    "network":    "Network error. Check server connection.",
+    "unauthorized":"Session expired. Please sign in again.",
+    "not_found":  "Resource not found.",
+    "generic":    "An unexpected error occurred."
+  }
+}
