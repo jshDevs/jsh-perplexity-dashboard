@@ -1,103 +1,93 @@
-import { Hono }     from 'hono'
-import { join }     from 'path'
-import { mkdir, writeFile, unlink } from 'fs/promises'
-import { randomUUID } from 'crypto'
-import { SecurityValidator } from '../services/security.js'
-import { duckdb }   from '../services/duckdb.js'
-import { redis }    from '../services/redis.js'
-// @ts-ignore
-import { inferSchema } from '../engine/schemaInference.js'
-// @ts-ignore
-import { recommendCharts } from '../engine/chartRecommender.js'
-// @ts-ignore
-import { detectConcepts } from '../engine/policeDomain.js'
-import * as Papa    from 'papaparse'
-import * as XLSX    from 'xlsx'
+/**
+ * POST /api/v1/ingest
+ *   multipart/form-data: file (required), sheet (optional, para Excel)
+ *   → { datasetId, filename, format, rowCount, columns, warnings }
+ *
+ * GET  /api/v1/datasets
+ *   → { datasetIds: string[] }
+ *
+ * GET  /api/v1/datasets/:id
+ *   → ParsedDataset (sin rows para economía de payload)
+ *
+ * GET  /api/v1/datasets/:id/rows?page=1&pageSize=100
+ *   → { rows, total, page, pageSize }
+ *
+ * DELETE /api/v1/datasets/:id
+ *   → { ok: true }
+ */
+import { Hono }          from 'hono'
+import { IngestionService } from '../ingestion/ingestionService'
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR ?? join(process.cwd(), 'storage/uploads')
-const MAX_SIZE   = 52_428_800 // 50 MB
+export function buildIngestRoutes(redis: any) {
+  const router  = new Hono()
+  const service = new IngestionService(redis)
 
-export const ingestRoutes = new Hono()
+  // POST /ingest
+  router.post('/', async (c) => {
+    try {
+      const body = await c.req.parseBody()
+      const file = body['file'] as File | undefined
 
-ingestRoutes.post('/file', async (c) => {
-  const formData   = await c.req.formData()
-  const file       = formData.get('file') as File | null
-  if (!file) return c.json({ error: 'No file provided' }, 400)
-  if (file.size > MAX_SIZE) return c.json({ error: 'File exceeds 50 MB limit' }, 413)
+      if (!file || typeof file === 'string') {
+        return c.json({ error: 'Se requiere un archivo (multipart field: file)' }, 400)
+      }
 
-  const buffer = Buffer.from(await file.arrayBuffer())
+      const sheetName    = typeof body['sheet'] === 'string' ? body['sheet'] : undefined
+      const fileBuffer   = Buffer.from(await file.arrayBuffer())
+      const originalName = file.name
 
-  // ── Security validation ─────────────────────────────────────────────────────
-  const security = new SecurityValidator()
-  const secResult = await security.validate(buffer, file.name, file.type)
-  if (!secResult.valid) return c.json({ error: secResult.reason }, 422)
+      if (!originalName) {
+        return c.json({ error: 'El archivo no tiene nombre' }, 400)
+      }
 
-  // ── Parse rows ──────────────────────────────────────────────────────────────
-  const ext  = file.name.split('.').pop()?.toLowerCase() ?? ''
-  let rows: Record<string, unknown>[] = []
+      const { datasetId, dataset } = await service.ingest(fileBuffer, originalName, sheetName)
 
-  if (ext === 'csv') {
-    const text   = buffer.toString('utf8')
-    const result = Papa.parse<Record<string, unknown>>(text, {
-      header: true, skipEmptyLines: true, dynamicTyping: true,
-    })
-    rows = result.data
-  } else if (ext === 'xlsx' || ext === 'xls') {
-    const wb    = XLSX.read(buffer, { type: 'buffer', cellDates: true })
-    const sheet = wb.Sheets[wb.SheetNames[0]]
-    rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null })
-  } else if (ext === 'json') {
-    const parsed = JSON.parse(buffer.toString('utf8'))
-    rows = Array.isArray(parsed) ? parsed : [parsed]
-  } else if (ext === 'parquet') {
-    // Save temp file and query with DuckDB
-    const tmpPath = join(UPLOAD_DIR, `${randomUUID()}.parquet`)
-    await mkdir(UPLOAD_DIR, { recursive: true })
-    await writeFile(tmpPath, buffer)
-    rows = await duckdb.query(`SELECT * FROM '${tmpPath}' LIMIT 5000`)
-    await unlink(tmpPath)
-  } else {
-    return c.json({ error: `Unsupported file type: .${ext}` }, 415)
-  }
-
-  if (!rows.length) return c.json({ error: 'File parsed but contains no rows' }, 422)
-
-  // ── Schema inference using engine ──────────────────────────────────────────
-  const schema    = inferSchema(rows)
-  const concepts  = detectConcepts(schema)
-  const charts    = recommendCharts(rows, schema, concepts)
-
-  const datasetId = randomUUID()
-  const meta      = { schema, charts: charts.slice(0, 8), row_count: rows.length, concepts }
-  await redis.setex(`dataset:${datasetId}:meta`, 3600, JSON.stringify(meta))
-
-  // Store sample rows for preview (max 500)
-  await redis.setex(
-    `dataset:${datasetId}:rows`,
-    3600,
-    JSON.stringify(rows.slice(0, 500))
-  )
-
-  return c.json({
-    data: {
-      dataset_id:  datasetId,
-      schema,
-      chart_hint:  charts[0] ?? null,
-      row_count:   rows.length,
-      preview_url: `/api/v1/schema/${datasetId}/preview`,
+      return c.json({
+        datasetId,
+        filename:  dataset.filename,
+        format:    dataset.format,
+        rowCount:  dataset.rowCount,
+        columns:   dataset.columns,
+        sheets:    dataset.sheets,
+        warnings:  dataset.warnings,
+      }, 201)
+    } catch (err: any) {
+      return c.json({ error: err.message ?? 'Error de ingestión' }, 422)
     }
-  }, 201)
-})
+  })
 
-// Inline JSON analysis
-ingestRoutes.post('/json', async (c) => {
-  const { payload } = await c.req.json()
-  const rows: Record<string, unknown>[] = Array.isArray(payload) ? payload : [payload]
-  if (!rows.length) return c.json({ error: 'Empty payload' }, 400)
+  // GET /datasets
+  router.get('/datasets', async (c) => {
+    const datasetIds = await service.listDatasets()
+    return c.json({ datasetIds })
+  })
 
-  const schema   = inferSchema(rows)
-  const datasetId = randomUUID()
-  await redis.setex(`dataset:${datasetId}:meta`, 3600, JSON.stringify({ schema, row_count: rows.length }))
+  // GET /datasets/:id
+  router.get('/datasets/:id', async (c) => {
+    const dataset = await service.getDataset(c.req.param('id'))
+    if (!dataset) return c.json({ error: 'Dataset no encontrado' }, 404)
+    const { rows: _, ...meta } = dataset
+    return c.json({ ...meta, rowCount: dataset.rowCount })
+  })
 
-  return c.json({ data: { dataset_id: datasetId, schema } }, 201)
-})
+  // GET /datasets/:id/rows
+  router.get('/datasets/:id/rows', async (c) => {
+    const dataset = await service.getDataset(c.req.param('id'))
+    if (!dataset) return c.json({ error: 'Dataset no encontrado' }, 404)
+
+    const page     = Math.max(1, parseInt(c.req.query('page')     ?? '1'))
+    const pageSize = Math.min(1000, parseInt(c.req.query('pageSize') ?? '100'))
+    const start    = (page - 1) * pageSize
+    const rows     = dataset.rows.slice(start, start + pageSize)
+
+    return c.json({ rows, total: dataset.rowCount, page, pageSize })
+  })
+
+  // DELETE /datasets/:id
+  router.delete('/datasets/:id', async (c) => {
+    await service.deleteDataset(c.req.param('id'))
+    return c.json({ ok: true })
+  })
+
+  return router
+}
