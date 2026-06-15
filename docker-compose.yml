@@ -1,3 +1,4 @@
+# JSH Dashboard v2 — 100% JavaScript stack (no PHP)
 version: '3.9'
 
 services:
@@ -21,7 +22,7 @@ services:
     networks:
       - jsh_net
 
-  # ── Redis ───────────────────────────────────────────────────
+  # ── Redis ─────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: jsh_redis
@@ -37,7 +38,7 @@ services:
     networks:
       - jsh_net
 
-  # ── Laravel Backend ─────────────────────────────────────────
+  # ── Hono API (Node.js 22) ─────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -46,98 +47,36 @@ services:
     container_name: jsh_backend
     restart: unless-stopped
     environment:
-      APP_ENV:          ${APP_ENV:-production}
-      APP_KEY:          ${APP_KEY:-base64:changeme_run_artisan_key_generate}
-      APP_DEBUG:        ${APP_DEBUG:-false}
-      DB_CONNECTION:    pgsql
+      NODE_ENV:         ${NODE_ENV:-production}
+      PORT:             8000
+      REDIS_HOST:       redis
+      REDIS_PORT:       6379
       DB_HOST:          postgres
       DB_PORT:          5432
       DB_DATABASE:      ${DB_DATABASE:-jsh_dashboard}
       DB_USERNAME:      ${DB_USERNAME:-jsh}
       DB_PASSWORD:      ${DB_PASSWORD:-secret}
-      REDIS_HOST:       redis
-      REDIS_PORT:       6379
-      CACHE_DRIVER:     redis
-      SESSION_DRIVER:   redis
-      QUEUE_CONNECTION: redis
-      DUCKDB_MODE:      ${DUCKDB_MODE:-cli}
-      DUCKDB_CLI_PATH:  /usr/local/bin/duckdb
       DUCKDB_MAX_MEMORY: ${DUCKDB_MAX_MEMORY:-1GB}
       DUCKDB_THREADS:   ${DUCKDB_THREADS:-4}
-      BROADCAST_CONNECTION: reverb
-      REVERB_APP_ID:    ${REVERB_APP_ID:-jsh_app}
-      REVERB_APP_KEY:   ${REVERB_APP_KEY:-jsh_key}
-      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-jsh_secret}
-      REVERB_HOST:      backend
-      REVERB_PORT:      8080
+      DASHBOARDS_DIR:   /app/dashboards
+      UPLOAD_DIR:       /app/storage/uploads
     volumes:
-      - backend_storage:/var/www/html/storage
+      - backend_storage:/app/storage
+      - backend_dashboards:/app/dashboards
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks:
-      - jsh_net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
-      interval: 30s
-      timeout: 10s
+      interval: 20s
+      timeout: 5s
       retries: 3
-
-  # ── Laravel Reverb (WebSocket) ──────────────────────────────
-  reverb:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: production
-    container_name: jsh_reverb
-    restart: unless-stopped
-    command: php artisan reverb:start --host=0.0.0.0 --port=8080
-    environment:
-      APP_ENV:          ${APP_ENV:-production}
-      APP_KEY:          ${APP_KEY:-base64:changeme_run_artisan_key_generate}
-      DB_CONNECTION:    pgsql
-      DB_HOST:          postgres
-      DB_PORT:          5432
-      DB_DATABASE:      ${DB_DATABASE:-jsh_dashboard}
-      DB_USERNAME:      ${DB_USERNAME:-jsh}
-      DB_PASSWORD:      ${DB_PASSWORD:-secret}
-      REDIS_HOST:       redis
-      REVERB_APP_ID:    ${REVERB_APP_ID:-jsh_app}
-      REVERB_APP_KEY:   ${REVERB_APP_KEY:-jsh_key}
-      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-jsh_secret}
-    depends_on:
-      - backend
     networks:
       - jsh_net
 
-  # ── Queue worker ────────────────────────────────────────────
-  queue:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: production
-    container_name: jsh_queue
-    restart: unless-stopped
-    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
-    environment:
-      APP_ENV:          ${APP_ENV:-production}
-      APP_KEY:          ${APP_KEY:-base64:changeme_run_artisan_key_generate}
-      DB_CONNECTION:    pgsql
-      DB_HOST:          postgres
-      DB_PORT:          5432
-      DB_DATABASE:      ${DB_DATABASE:-jsh_dashboard}
-      DB_USERNAME:      ${DB_USERNAME:-jsh}
-      DB_PASSWORD:      ${DB_PASSWORD:-secret}
-      REDIS_HOST:       redis
-      QUEUE_CONNECTION: redis
-    depends_on:
-      - backend
-    networks:
-      - jsh_net
-
-  # ── React Frontend ──────────────────────────────────────────
+  # ── React Frontend ────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
@@ -149,7 +88,7 @@ services:
     networks:
       - jsh_net
 
-  # ── Nginx reverse proxy ───────────────────────────────────
+  # ── Nginx reverse proxy ───────────────────────────────────────
   nginx:
     image: nginx:1.27-alpine
     container_name: jsh_nginx
@@ -168,6 +107,7 @@ volumes:
   postgres_data:
   redis_data:
   backend_storage:
+  backend_dashboards:
 
 networks:
   jsh_net:
