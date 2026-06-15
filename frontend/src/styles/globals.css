@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  --color-brand:    #6366f1;
+  --color-brand-dark: #4f46e5;
+  --color-surface:  #0f172a;
+  --color-panel:    #1e293b;
+  --color-border:   #334155;
+  --color-text:     #f1f5f9;
+  --color-muted:    #94a3b8;
+}
+
+body {
+  background-color: var(--color-surface);
+  color:            var(--color-text);
+  font-family:      'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: var(--color-surface); }
+::-webkit-scrollbar-thumb  { background: var(--color-border); border-radius: 3px; }
+
+/* ECharts responsive */
+.echarts-for-react { width: 100% !important; }
+
+/* Transition utilities */
+.transition-fast { transition: all 0.15s ease; }
