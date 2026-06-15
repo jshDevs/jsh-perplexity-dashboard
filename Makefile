@@ -1,40 +1,37 @@
-.PHONY: up down build logs shell-backend shell-frontend test-backend test-frontend seed migrate fresh
+# Makefile — shortcuts para JSH Dashboard
 
-up:
+.PHONY: dev prod build-frontend logs ps stop clean
+
+# ── Desarrollo
+dev:
 	docker compose up -d
 
-down:
-	docker compose down
+# ── Producción
+build-frontend:
+	docker compose -f docker-compose.prod.yml \
+	  --profile build run --rm frontend
 
-build:
-	docker compose build --no-cache
+prod: build-frontend
+	docker compose -f docker-compose.prod.yml up -d
+
+stop:
+	docker compose -f docker-compose.prod.yml down
 
 logs:
-	docker compose logs -f
-
-shell-backend:
-	docker compose exec backend sh
-
-shell-frontend:
-	docker compose exec frontend sh
-
-test-backend:
-	docker compose exec backend php artisan test --parallel
-
-test-frontend:
-	docker compose exec frontend npm run test
-
-migrate:
-	docker compose exec backend php artisan migrate
-
-fresh:
-	docker compose exec backend php artisan migrate:fresh --seed
-
-seed:
-	docker compose exec backend php artisan db:seed
-
-key:
-	docker compose exec backend php artisan key:generate
+	docker compose -f docker-compose.prod.yml logs -f --tail=100
 
 ps:
-	docker compose ps
+	docker compose -f docker-compose.prod.yml ps
+
+# ── Limpieza
+clean:
+	docker compose -f docker-compose.prod.yml down -v --remove-orphans
+
+# ── Tests
+test-backend:
+	cd backend && npm test
+
+test-frontend:
+	cd frontend && npm test
+
+test-all: test-backend test-frontend

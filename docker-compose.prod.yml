@@ -1,0 +1,155 @@
+# docker-compose.prod.yml
+# Stack de producción: self-hosted, offline-first, LAN intranet
+# Uso: docker compose -f docker-compose.prod.yml up -d
+
+version: '3.9'
+
+services:
+
+  # ────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: jsh_nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro          # certs para HTTPS intranet
+      - frontend_dist:/usr/share/nginx/html:ro  # static build
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [jsh_net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: jsh_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV:          production
+      PORT:              "3000"
+      REDIS_URL:         "redis://redis:6379"
+      DATABASE_URL:      "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+      UPLOAD_DIR:        /app/uploads
+      MAX_UPLOAD_BYTES:  "${MAX_UPLOAD_BYTES:-52428800}"
+      DATASET_TTL_SEC:   "${DATASET_TTL_SEC:-86400}"
+      MAX_DATASET_ROWS:  "${MAX_DATASET_ROWS:-100000}"
+      DUCKDB_URL:        "http://duckdb-sidecar:8080"
+      JWT_SECRET:        "${JWT_SECRET}"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks: [jsh_net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: jsh_frontend_build
+    environment:
+      VITE_API_URL:   ""
+      VITE_WS_URL:    ""
+      VITE_MAX_MB:    "${MAX_UPLOAD_MB:-50}"
+    volumes:
+      - frontend_dist:/app/dist
+    networks: [jsh_net]
+    # Este servicio solo construye y sale — Nginx sirve el dist
+    profiles: ["build"]
+
+  # ────────────────────────────────────────────────────
+  redis:
+    image: redis:7.4-alpine
+    container_name: jsh_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --save 60 1
+      --loglevel warning
+      --maxmemory ${REDIS_MAXMEMORY:-512mb}
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks: [jsh_net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: jsh_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     "${POSTGRES_USER:-jsh}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB:       "${POSTGRES_DB:-jsh_dashboard}"
+      PGDATA:            /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/init:/docker-entrypoint-initdb.d:ro
+    networks: [jsh_net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jsh} -d ${POSTGRES_DB:-jsh_dashboard}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ────────────────────────────────────────────────────
+  duckdb-sidecar:
+    image: node:22-alpine
+    container_name: jsh_duckdb
+    restart: unless-stopped
+    working_dir: /app
+    command: node duckdb-server.mjs
+    environment:
+      PORT:      "8080"
+      DATA_DIR:  /data
+    volumes:
+      - ./duckdb-sidecar/duckdb-server.mjs:/app/duckdb-server.mjs:ro
+      - duckdb_data:/data
+    networks: [jsh_net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads_data:
+  frontend_dist:
+  duckdb_data:
+
+networks:
+  jsh_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "172.20.0.0/16"
