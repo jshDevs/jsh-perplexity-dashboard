@@ -1,81 +1,100 @@
-# JSH Perplexity Dashboard
+# JSH Dashboard
 
-> Sistema de dashboards dinámicos auto-generados — superior a Power BI, 100% self-hosted, offline-first.
+> **Sistema de dashboards dinámicos auto-generados** — Superior a Power BI, 100% self-hosted, offline-first, sin LLM.
 
 ## Stack
 
 | Capa | Tecnología |
 |------|------------|
-| Backend | Laravel 11 · PHP 8.3 |
-| Frontend | React 18 · TypeScript · Vite |
-| Charts | Apache ECharts 5 |
-| Analytics DB | DuckDB (FFI via satur-io/duckdb-php) |
-| OLTP DB | PostgreSQL 16 |
-| Cache/WS Bus | Redis 7 |
-| Tables | TanStack Table v8 |
-| State | Zustand 4 |
-| Styles | Tailwind CSS v4 |
-| WebSocket | Laravel Reverb |
-
-## Características
-
-- ✅ Inferencia automática de schema (JSON / CSV / Excel / SQL) sin LLM
-- ✅ BI-as-Code: dashboards declarados en YAML
-- ✅ Selección automática de tipo de gráfico (árbol de decisión 7 nodos)
-- ✅ Cross-filtering bidireccional client-side con Zustand
-- ✅ Filter bookmarks por URL (nuqs)
-- ✅ Anomaly detection estadístico (IQR · Z-score · CUSUM · Moving Z-score)
-- ✅ Forecasting (Holt-Winters Triple Exponential Smoothing) — PHP puro
-- ✅ WebSocket real-time con Laravel Reverb self-hosted
-- ✅ Security pipeline: XXE/CSV-injection/Zip-bomb/SQL-injection mitigation
-- ✅ $0 en licencias — solo OSS MIT/Apache-2.0
+| Backend API | Laravel 11, PHP 8.3 |
+| Motor analítico | DuckDB 1.1.3 (CLI + FFI) |
+| Inferencia de schema | PHP puro (statístico) |
+| Caché | Redis 7 |
+| Base de datos | PostgreSQL 16 |
+| Frontend | React 18 + TypeScript + Vite |
+| Gráficas | Apache ECharts 5 |
+| Tabla | TanStack Table v8 |
+| Estado global | Zustand + subscribeWithSelector |
+| Estilos | Tailwind CSS v4 |
+| WebSocket | Laravel Reverb (self-hosted) |
+| Contenedores | Docker Compose |
 
 ## Quick Start
 
 ```bash
+# 1. Clonar
 git clone https://github.com/jshDevs/jsh-perplexity-dashboard.git
 cd jsh-perplexity-dashboard
+
+# 2. Configurar variables de entorno
 cp .env.example .env
-docker compose up -d
-docker compose exec app php artisan migrate --seed
-# Abrir http://localhost:8000
+# Editar .env: cambiar passwords
+
+# 3. Construir e iniciar
+make build
+make up
+
+# 4. Generar APP_KEY (solo primera vez)
+make key
+
+# 5. Ejecutar migraciones y seed de demo
+make fresh
+
+# 6. Abrir en el navegador
+open http://localhost
 ```
 
-## Estructura del proyecto
+## Arquitectura
 
 ```
-├── backend/          # Laravel 11 application
+jsh-perplexity-dashboard/
+├── backend/                  # Laravel 11
 │   ├── app/
-│   │   ├── Analytics/    # SchemaInference, ChartSelector, Anomaly, Forecast
-│   │   ├── Http/         # Controllers, Requests, Resources
-│   │   └── Services/     # DuckDB, MetricsRegistry, Dashboard compiler
-│   ├── storage/
-│   │   ├── dashboards/   # YAML dashboard definitions
-│   │   ├── metrics/      # YAML metrics registry
-│   │   └── data/         # User uploaded files (CSV/Parquet/JSON)
-│   └── tests/            # Feature + Unit tests (PHPUnit)
-├── frontend/         # React 18 + TypeScript + Vite
-│   ├── src/
-│   │   ├── components/   # ECharts wrappers, TanStack Table, Filters
-│   │   ├── store/        # Zustand dashboard store
-│   │   ├── hooks/        # useFilteredData, useDashboard, useWebSocket
-│   │   └── types/        # TypeScript interfaces
-│   └── tests/            # Vitest + React Testing Library
-├── docker/           # Nginx config, PHP Dockerfile
+│   │   ├── Analytics/
+│   │   │   ├── SchemaInferenceEngine.php  # Q1: Inferencia sin LLM
+│   │   │   ├── ChartSelectorEngine.php    # Q5: Árbol de decisión O(1)
+│   │   │   ├── Anomaly/StatisticalAnomalyDetector.php  # Q7
+│   │   │   └── Forecast/HoltWintersForecast.php        # Q8
+│   │   ├── Services/
+│   │   │   ├── DuckDBService.php           # Q3: DuckDB CLI + FFI
+│   │   │   ├── MetricsRegistry.php         # Q4: Semantic Layer YAML
+│   │   │   ├── DashboardCompilerService.php # Q2: BI-as-Code
+│   │   │   └── SecurityValidator.php       # Q10: DevSecOps
+│   │   └── Http/Controllers/
+│   └── tests/Unit/
+├── frontend/                 # React 18 + TypeScript
+│   └── src/
+│       ├── components/          # DynamicChart, DataTable, FilterPanel
+│       ├── pages/               # DashboardView, DataIngestion
+│       ├── store/               # Zustand cross-filter store
+│       └── api/                 # React Query + Axios
+├── nginx/                    # Reverse proxy config
 ├── docker-compose.yml
-└── .env.example
+└── Makefile
 ```
 
 ## Tests
 
 ```bash
-# Backend (PHPUnit)
-docker compose exec app php artisan test
+# Backend PHPUnit (37 casos)
+make test-backend
 
-# Frontend (Vitest)
-docker compose exec frontend npm run test
+# Frontend Vitest
+make test-frontend
 ```
+
+## Características
+
+- **Inferencia automática de schema** (METRIC, DIMENSION, TIME, ID, TEXT) sin LLM
+- **Selección automática de gráficas** (árbol de decisión determinista de 7 nodos)
+- **DuckDB** para consultas analíticas directas en CSV/Parquet/JSON (hasta 500MB)
+- **Cross-filtering bidireccional** con Zustand + subscribeWithSelector
+- **Detección de anomalías** (IQR, Z-score, Modified Z-score, CUSUM)
+- **Forecasting** (Holt-Winters, SMA) implementado en PHP puro
+- **Capa semántica** YAML: métricas reutilizables + datasets virtuales
+- **Seguridad**: validación MIME real, anti-zip-bomb, SQL whitelist, CSV formula injection
+- **Offline-first**: opera 100% en LAN sin internet
 
 ## Licencia
 
-MIT — Jorge Salazar / JSH Devs
+MIT — © 2026 Jorge Salazar
