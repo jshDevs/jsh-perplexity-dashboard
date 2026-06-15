@@ -13,7 +13,8 @@
 | DuckDB service | `duckdb.test.ts` | 5 |
 | Security validator | `security.test.ts` | 5 |
 | Forecast (Holt-Winters) | `forecast.test.ts` | 4 |
-| **Total** | | **33** |
+| Auth + rate limit | `auth.test.ts` | 5 |
+| **Total** | | **38** |
 
 ### Frontend (Vitest + Testing Library)
 
@@ -29,7 +30,7 @@
 | API client | `api.test.ts` | 4 |
 | **Total** | | **38** |
 
-**Total general: 71 casos de test**
+**Total general: 76 casos de test + 2 smoke E2E Playwright**
 
 ## Cobertura mínima configurada
 
@@ -81,13 +82,10 @@ statements: 70%
 - [x] `secureHeaders()` en todas las rutas (X-Content-Type-Options, etc.)
 - [x] Parámetros de filtro sanitizados (escape de comillas simples)
 - [x] PII masking antes de devolver filas al cliente
-- [ ] Rate limiting por IP (pendiente: `hono/rate-limiter` o Redis sliding window)
-- [ ] JWT/Auth (pendiente para v2.1 — actualmente intranet sin autenticación)
+- [x] Rate limiting por IP en ingest (Redis fixed-window)
+- [x] JWT/Auth básico para intranet
 
 ## Pendientes v2.1
 
-1. Rate limiting por IP en endpoints de ingest
-2. Autenticación JWT básica (intranet, sin OAuth)
-3. Tests E2E con Playwright (smoke: upload CSV → ver dashboard)
-4. Internacionalización (i18n) de mensajes del engine
-5. Playwright visual regression para gráficas ECharts
+1. Internacionalización (i18n) de mensajes del engine
+2. Playwright visual regression para gráficas ECharts
